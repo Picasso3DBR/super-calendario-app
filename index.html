@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v20 — Terra 3D resiliente com textura procedural de fallback, efeito de órbita premium com faixas concêntricas, cometas retos, widget de clima reposicionado.</h2>
+<h2 class="sr-only">Super Calendário v22 — texturas embarcadas no repositório, clima real Open-Meteo, banco de comemorações BR, cometas removidos.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +18,7 @@
 @keyframes twinkleB20 { 0%,100%{opacity:0.8;transform:scale(1);} 30%{opacity:0.2;transform:scale(0.9);} 70%{opacity:0.6;transform:scale(1.1);} }
 @keyframes twinkleC20 { 0%,100%{opacity:0.4;} 50%{opacity:0.95;} }
 @keyframes twinkleD20 { 0%,100%{opacity:0.7;transform:scale(1);} 50%{opacity:0.1;transform:scale(0.7);} }
-@keyframes cometFade20 { 0%{opacity:0;} 12%{opacity:1;} 55%{opacity:0.9;} 100%{opacity:0;} }
+/* v22: keyframe cometFade20 removido */
 
 #app20 {
   width: 100%; max-width: 380px; margin: 0 auto;
@@ -30,7 +30,7 @@
 #app20 * { font-family: inherit; }
 #galaxyLayer20 {
   position: absolute; inset:-10%;
-  background-image: url('https://cdn.jsdelivr.net/gh/Picasso3DBR/super-calendario-textures/galaxy.jpg');
+  background-image: url('./galaxy.jpg');
   background-color: #05060d;
   background-size: cover; background-position: center; background-repeat: no-repeat;
   animation: galaxyDrift20 80s ease-in-out infinite; z-index: 0;
@@ -38,17 +38,8 @@
 #galaxyOverlay20 { position:absolute; inset:0; background:rgba(0,0,0,0.35); pointer-events:none; z-index:1; transition:background 0.3s; }
 #starsLayer20 { position:absolute; inset:0; pointer-events:none; z-index:2; overflow:hidden; }
 #starsLayer20 .star { position:absolute; background:#fff; border-radius:50%; box-shadow:0 0 4px rgba(255,255,255,0.6); }
-#cometsLayer20 { position:absolute; inset:0; pointer-events:none; z-index:2; overflow:hidden; }
-.comet20 {
-  position:absolute; height:1.4px;
-  border-radius:1px; transform-origin:left center; opacity:0;
-}
-.comet20 .core {
-  position:absolute; right:-1px; top:50%; transform:translateY(-50%);
-  width:3px; height:3px; border-radius:50%; background:#ffffff;
-  box-shadow: 0 0 6px 1px rgba(200,230,255,0.9);
-}
-#app20 > *:not(#galaxyLayer20):not(#galaxyOverlay20):not(#starsLayer20):not(#cometsLayer20) {
+#cometsLayer20 { display:none; } /* v22: cometas removidos */
+#app20 > *:not(#galaxyLayer20):not(#galaxyOverlay20):not(#starsLayer20) {
   position: relative; z-index: 3;
 }
 #earth20 { display:block; width:100%; height:100%; background:transparent; }
@@ -110,7 +101,7 @@
   <div id="galaxyLayer20"></div>
   <div id="galaxyOverlay20"></div>
   <div id="starsLayer20"></div>
-  <div id="cometsLayer20"></div>
+  <!-- v22: cometsLayer removida -->
 
   <div style="display:grid; grid-template-columns:60px 1fr 60px; align-items:start; padding:14px 14px 6px; gap:8px;">
     <button id="addEvBtn20" aria-label="Calendário" style="background:transparent; border:none; padding:0; cursor:pointer; display:flex; flex-direction:column; align-items:center;">
@@ -149,6 +140,16 @@
           <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2a2 2 0 010-4h.09A1.65 1.65 0 003.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H8a1.65 1.65 0 001-1.51V2a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V8a1.65 1.65 0 001.51 1H22a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="#fff" stroke-width="1.5"/>
         </svg>
       </button>
+
+      <!-- WIDGET DE CLIMA / ESTAÇÃO / TEMPERATURA — abaixo da engrenagem, alinhado com a linha "— 13 —" -->
+      <div id="weatherWidget20" style="margin-top:18px; display:flex; flex-direction:column; align-items:center; gap:2px; text-shadow:0 1px 4px rgba(0,0,0,0.85);">
+        <div id="weatherIcon" style="font-size:26px; line-height:1;">⛅</div>
+        <div id="season20" style="font-size:10px; font-weight:400; opacity:0.95; color:#fff;">primavera</div>
+        <div style="display:flex; align-items:center; gap:2px; color:#fff;">
+          <span style="font-size:12px;">🌡️</span>
+          <span id="tempVal" style="font-size:10px; font-weight:400;">18°C</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -162,16 +163,6 @@
       </div>
     </div>
     <div id="dragMode20" style="position:absolute; top:6px; right:10px; font-size:9px; color:rgba(255,255,255,0.6); letter-spacing:1px; z-index:3; text-shadow:0 1px 2px rgba(0,0,0,0.9);">—</div>
-
-    <!-- WIDGET DE CLIMA / ESTAÇÃO / TEMPERATURA — rebaixado para dar respiro com a engrenagem -->
-    <div id="weatherWidget20" style="position:absolute; top:14px; right:12px; display:flex; flex-direction:column; align-items:center; gap:2px; text-shadow:0 1px 4px rgba(0,0,0,0.85); z-index:4;">
-      <div id="weatherIcon" style="font-size:26px; line-height:1;">⛅</div>
-      <div id="season20" style="font-size:10px; font-weight:400; opacity:0.95;">outono</div>
-      <div style="display:flex; align-items:center; gap:2px;">
-        <span style="font-size:12px;">🌡️</span>
-        <span id="tempVal" style="font-size:10px; font-weight:400;">25°C</span>
-      </div>
-    </div>
   </div>
 
   <div style="text-align:center; padding:8px 0 6px;">
@@ -189,11 +180,12 @@
       <div id="wikiText" style="font-size:8.5px; color:#fff; opacity:0.95; text-align:left; line-height:1.2; min-height:22px; transition:opacity 0.4s; text-shadow:0 1px 3px rgba(0,0,0,0.95); font-weight:400;">—</div>
     </button>
     <div style="text-align:center;">
-      <div id="cityName" style="font-size:12px; font-weight:600; color:#f3c969; letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9);">JUNDIAÍ - SP</div>
+      <div id="cityName" style="font-size:12px; font-weight:600; color:#f3c969; letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9);">NOVA YORK - NY</div>
     </div>
     <div style="text-align:right; text-shadow:0 1px 3px rgba(0,0,0,0.9);">
       <div style="font-size:8.5px; color:#fff; opacity:0.75; letter-spacing:0.5px; font-weight:500;">PRÓXIMO FERIADO</div>
-      <div id="nextHoliday" style="font-size:9.5px; color:#f3c969; opacity:0.98; margin-top:2px;">—</div>
+      <div id="nextHolidayDate" style="font-size:11px; color:#f3c969; opacity:0.98; margin-top:2px; font-weight:500;">—</div>
+      <div id="nextHolidayName" style="font-size:9px; color:#f3c969; opacity:0.85; margin-top:0; line-height:1.2;">—</div>
     </div>
   </div>
 
@@ -222,16 +214,8 @@
 
     <div class="config-row">
       <div>
-        <div class="config-label">cometas ao fundo</div>
-        <div class="config-desc">finos rastros retos cruzando o espaço</div>
-      </div>
-      <div id="cometToggle20" class="mini-toggle on"><span></span></div>
-    </div>
-
-    <div class="config-row">
-      <div>
         <div class="config-label">efeito de órbita</div>
-        <div class="config-desc">faixas de velocidade ao girar o planeta</div>
+        <div class="config-desc">linhas suaves ao girar o planeta</div>
       </div>
       <div id="orbitToggle20" class="mini-toggle on"><span></span></div>
     </div>
@@ -239,12 +223,12 @@
     <div class="config-row">
       <div>
         <div class="config-label">ponto de localização menor</div>
-        <div class="config-desc">reduz o pulso verde de Jundiaí em 30%</div>
+        <div class="config-desc">reduz o pulso verde de Nova York em 30%</div>
       </div>
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v20</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v22</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -367,7 +351,6 @@
 
   const config = {
     galaxyVisibility: 100,
-    cometsEnabled: true,
     orbitEnabled: true,
     smallPin: false
   };
@@ -388,58 +371,15 @@
     starsLayer.appendChild(s);
   }
 
-  // ===== COMETAS — finos, RETOS, surgem em linha reta, rastro some em 1-2s =====
-  const cometsLayer = document.getElementById('cometsLayer20');
-
-  function launchComet(delayMs){
-    if(!config.cometsEnabled) return;
-    setTimeout(()=>{
-      if(!config.cometsEnabled) return;
-      const comet = document.createElement('div');
-      comet.className = 'comet20';
-
-      // posição e ângulo aleatórios — o cometa aparece JÁ no lugar (não desliza)
-      const startX = 8 + Math.random()*78;   // %
-      const startY = 6 + Math.random()*60;   // %
-      const angle = -35 + Math.random()*70;  // graus (inclinação do risco)
-      const length = 46 + Math.random()*42;  // px — comprimento do risco fino
-
-      comet.style.left = startX + '%';
-      comet.style.top = startY + '%';
-      comet.style.width = length + 'px';
-      comet.style.transform = 'rotate(' + angle + 'deg)';
-      comet.style.background =
-        'linear-gradient(90deg, rgba(168,210,255,0) 0%, rgba(168,210,255,0.25) 40%, rgba(200,230,255,0.9) 85%, #ffffff 100%)';
-      comet.style.filter = 'drop-shadow(0 0 2px rgba(168,210,255,0.65))';
-
-      const core = document.createElement('div');
-      core.className = 'core';
-      comet.appendChild(core);
-      cometsLayer.appendChild(comet);
-
-      // rastro aparece e some em 1-2s, SEM deslizar — só fade do risco reto
-      const dur = 1000 + Math.random()*1000;
-      comet.style.animation = 'cometFade20 ' + dur + 'ms ease-out forwards';
-      setTimeout(()=>{ comet.remove(); }, dur + 100);
-    }, delayMs);
-  }
-
-  function cometCycle(){
-    if(config.cometsEnabled){
-      const burst = 1 + Math.floor(Math.random()*2);
-      for(let i=0;i<burst;i++) launchComet(Math.random()*2500);
-    }
-    setTimeout(cometCycle, 3500 + Math.random()*4000);
-  }
-  setTimeout(cometCycle, 1200);
+  // ===== COMETAS REMOVIDOS NO v22 =====
 
   // ===== DADOS / CALENDÁRIO =====
   const canvas = document.getElementById('earth20');
   const wrap = document.getElementById('canvasWrap20');
   const loadingMsg = document.getElementById('loadingMsg20');
 
-  const USER_LAT = -23.19;
-  const USER_LNG = -46.88;
+  const USER_LAT = 40.71;
+  const USER_LNG = -74.01;
   const IDLE_TIMEOUT_MS = 10000;
   const SLOW_DRAG_PX_PER_HOUR = 18;
   const FAST_DRAG_THRESHOLD_PX_PER_MS = 0.7;
@@ -447,12 +387,15 @@
   const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const WEEKDAYS = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 
-  function seasonSouth(d){
+  function seasonNorth(d){
+    // Estações do hemisfério norte (Nova York)
+    // Equinócio primavera: ~20/mar · Solstício verão: ~21/jun
+    // Equinócio outono: ~22/set · Solstício inverno: ~21/dez
     const m=d.getMonth(), day=d.getDate();
-    if((m===11&&day>=21)||m<2||(m===2&&day<20)) return 'verão';
-    if((m===2&&day>=20)||m<5||(m===5&&day<21)) return 'outono';
-    if((m===5&&day>=21)||m<8||(m===8&&day<23)) return 'inverno';
-    return 'primavera';
+    if((m===11&&day>=21)||m<2||(m===2&&day<20)) return 'inverno';
+    if((m===2&&day>=20)||m<5||(m===5&&day<21)) return 'primavera';
+    if((m===5&&day>=21)||m<8||(m===8&&day<23)) return 'verão';
+    return 'outono';
   }
   function easterDate(year){
     const a=year%19, b=Math.floor(year/100), c=year%100;
@@ -501,20 +444,41 @@
     }
     return null;
   }
-  const COMEMORACOES = {
-    '05-13':['Dia da Abolição da Escravatura','Dia do Zootecnista'],
-    '06-12':['Dia dos Namorados (Brasil)']
-  };
+  // ===== BANCO DE COMEMORAÇÕES (v22) =====
+  // Carregado de ./comemoracoes.json — estruturado por país (preparado para multi-país futuro).
+  // País atual do app: BR. Quando o GPS for ativado (v23), pode mudar dinamicamente.
+  const CURRENT_COUNTRY = 'BR';
+  let COMEMORACOES = {}; // populado via fetch
+
+  fetch('./comemoracoes.json')
+    .then(r => r.ok ? r.json() : Promise.reject('HTTP '+r.status))
+    .then(data => {
+      COMEMORACOES = data[CURRENT_COUNTRY] || {};
+      console.log('[comemoracoes] carregadas: '+Object.keys(COMEMORACOES).length+' datas para '+CURRENT_COUNTRY);
+      renderWiki();
+    })
+    .catch(err => {
+      console.log('[comemoracoes] falha ao carregar JSON, usando fallback mínimo:', err);
+      // fallback mínimo embarcado para o app não ficar mudo se o JSON não carregar
+      COMEMORACOES = {
+        '05-13':['Dia da Abolição da Escravatura','Dia do Zootecnista'],
+        '06-12':['Dia dos Namorados (Brasil)']
+      };
+      renderWiki();
+    });
+
   function getComemoracoes(date){
     const key = String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
     return COMEMORACOES[key] || [];
   }
   function simulateWeather(date){
     const m=date.getMonth();
-    const meanTemp=[24,24,23,21,18,16,16,18,20,22,23,24][m];
+    // Temperaturas médias mensais aproximadas de Nova York (°C)
+    // jan, fev, mar, abr, mai, jun, jul, ago, set, out, nov, dez
+    const meanTemp=[0, 1, 6, 12, 17, 22, 25, 24, 20, 14, 8, 3][m];
     const seed=date.getDate()*31+m;
     const r=((seed*9301+49297)%233280)/233280;
-    const temp=Math.round(meanTemp+(r-0.5)*8);
+    const temp=Math.round(meanTemp+(r-0.5)*10);
     const condType = Math.floor(((seed*7919)%100)/25);
     const hour = date.getHours();
     const isNight = hour >= 18 || hour < 5;
@@ -526,9 +490,74 @@
     return {temp, icon};
   }
 
+  // ===== CLIMA REAL via Open-Meteo (v22) =====
+  // Cache de 6h em localStorage. Se a API falhar e o cache estiver fresco, usa cache.
+  // Se cache vencido + API falhando, volta ao simulado.
+  const WEATHER_CACHE_KEY = 'sc_weather_cache_v22';
+  const WEATHER_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 horas em ms
+
+  // WMO weather code → emoji (Open-Meteo usa o padrão WMO)
+  // Referência: https://open-meteo.com/en/docs (campo "weather_code")
+  function wmoToIcon(code, isNight){
+    if(code===0) return isNight ? '🌙' : '☀️';                  // céu limpo
+    if(code===1) return isNight ? '🌙' : '🌤️';                  // pouca nuvem
+    if(code===2) return isNight ? '☁️' : '⛅';                   // parcial nublado
+    if(code===3) return '☁️';                                    // nublado
+    if(code===45 || code===48) return '🌫️';                      // neblina
+    if(code>=51 && code<=57) return '🌦️';                        // garoa
+    if(code>=61 && code<=67) return '🌧️';                        // chuva
+    if(code>=71 && code<=77) return '🌨️';                        // neve
+    if(code>=80 && code<=82) return '🌦️';                        // pancadas
+    if(code>=85 && code<=86) return '🌨️';                        // pancadas de neve
+    if(code>=95 && code<=99) return '⛈️';                        // tempestade
+    return isNight ? '🌙' : '⛅';
+  }
+
+  let weatherCache = null;
+  try { weatherCache = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) || 'null'); } catch(e){ weatherCache = null; }
+  let weatherFetchInFlight = false;
+
+  async function fetchOpenMeteo(lat, lng){
+    if(weatherFetchInFlight) return;
+    weatherFetchInFlight = true;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=auto`;
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      const cur = data.current;
+      if(!cur || typeof cur.temperature_2m !== 'number') throw new Error('payload inválido');
+      weatherCache = {
+        temp: Math.round(cur.temperature_2m),
+        code: cur.weather_code,
+        lat, lng,
+        fetchedAt: Date.now()
+      };
+      try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(weatherCache)); } catch(e){}
+      // re-render para atualizar widget
+      renderHeader();
+    } catch(err) {
+      // silencioso — mantém o que estiver no cache, ou o fallback simulado
+      console.log('[weather] falha ao buscar Open-Meteo, mantendo cache/simulado:', err.message);
+    } finally {
+      weatherFetchInFlight = false;
+    }
+  }
+
+  function getWeatherForToday(){
+    // se cache fresco (<6h), usa cache
+    if(weatherCache && weatherCache.fetchedAt && (Date.now() - weatherCache.fetchedAt) < WEATHER_CACHE_TTL){
+      const hour = (new Date()).getHours();
+      const isNight = hour >= 18 || hour < 5;
+      return { temp: weatherCache.temp, icon: wmoToIcon(weatherCache.code, isNight) };
+    }
+    // cache vencido ou inexistente: usa simulado e dispara busca em background
+    return simulateWeather(viewDate);
+  }
+
   let currentDate = new Date();
   let viewDate = new Date(currentDate);
-  let events = JSON.parse(localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
+  let events = JSON.parse(localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
   let currentEventIndex = 0;
 
   function dateKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -537,7 +566,7 @@
            viewDate.getMonth()===currentDate.getMonth() &&
            viewDate.getDate()===currentDate.getDate();
   }
-  function saveEvents(){ try{ localStorage.setItem('sc_events_v20', JSON.stringify(events)); }catch(e){} }
+  function saveEvents(){ try{ localStorage.setItem('sc_events_v22', JSON.stringify(events)); }catch(e){} }
 
   function getEventsForDate(date){
     const direct = (events[dateKey(date)] || []).map((ev, idx) => ({...ev, _key: dateKey(date), _idx: idx}));
@@ -567,8 +596,9 @@
     const hh=String(viewDate.getHours()).padStart(2,'0');
     const mm=String(viewDate.getMinutes()).padStart(2,'0');
     document.getElementById('liveTime20').textContent = hh+':'+mm;
-    document.getElementById('season20').textContent = seasonSouth(viewDate);
-    const w = simulateWeather(viewDate);
+    document.getElementById('season20').textContent = seasonNorth(viewDate);
+    // clima real apenas para o dia de HOJE; outras datas usam simulado
+    const w = isViewToday() ? getWeatherForToday() : simulateWeather(viewDate);
     document.getElementById('weatherIcon').textContent = w.icon;
     document.getElementById('tempVal').textContent = w.temp+'°C';
     const h = getHolidayForDate(viewDate);
@@ -600,7 +630,15 @@
   }
   function renderNextHoliday(){
     const n = getNextHoliday(viewDate);
-    document.getElementById('nextHoliday').textContent = n ? (n.dateStr+' — '+n.name) : '—';
+    const dateEl = document.getElementById('nextHolidayDate');
+    const nameEl = document.getElementById('nextHolidayName');
+    if(n){
+      dateEl.textContent = n.dateStr;
+      nameEl.textContent = n.name;
+    } else {
+      dateEl.textContent = '—';
+      nameEl.textContent = '';
+    }
   }
   let wikiLoopInterval = null;
   function renderWiki(){
@@ -621,6 +659,10 @@
   }
   function renderAll(){ renderHeader(); renderEventBox(); renderCalIcon(); renderNextHoliday(); renderWiki(); }
   renderAll();
+
+  // v22: dispara busca do clima real (Open-Meteo) na inicialização + refresh a cada 10 min
+  fetchOpenMeteo(USER_LAT, USER_LNG);
+  setInterval(()=> fetchOpenMeteo(USER_LAT, USER_LNG), 10 * 60 * 1000);
 
   // ===== TERRA 3D =====
   const scene = new THREE.Scene();
@@ -745,15 +787,7 @@
   latPivot.add(earth);
   latPivot.rotation.x = USER_LAT * Math.PI/180;
 
-  // halo atmosférico discreto
-  const haloMat = new THREE.ShaderMaterial({
-    uniforms:{},
-    vertexShader:`varying vec3 vN; void main(){ vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-    fragmentShader:`varying vec3 vN; void main(){ float i=pow(1.0-abs(vN.z),2.6); gl_FragColor=vec4(0.45,0.68,1.0,i*0.55); }`,
-    blending:THREE.AdditiveBlending, side:THREE.BackSide, transparent:true, depthWrite:false
-  });
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(1.045,64,64), haloMat);
-  scene.add(halo);
+  // halo atmosférico removido a pedido (v21)
 
   function targetSpinY(){
     const latR = USER_LAT * Math.PI/180;
@@ -771,77 +805,62 @@
   let spinVelocity = 0;
   spinPivot.rotation.y = baseSpin + extraSpin;
 
-  // ===== EFEITO DE ÓRBITA PREMIUM — faixas concêntricas de partículas =====
-  // Vários anéis finos, cada um com cor e raio próprios. Blending aditivo
-  // faz o brilho se somar. Intensidade amarrada à velocidade do arrasto.
-  const ORBIT_BANDS = [
-    { count: 90,  rMin: 1.16, rMax: 1.20, color: 0x8a5cff, size: 0.030, yJit: 0.015, speed: 2.6 },
-    { count: 120, rMin: 1.21, rMax: 1.27, color: 0x4aa6ff, size: 0.034, yJit: 0.022, speed: 3.0 },
-    { count: 120, rMin: 1.28, rMax: 1.34, color: 0x7fe4ff, size: 0.030, yJit: 0.030, speed: 3.4 },
-    { count: 70,  rMin: 1.30, rMax: 1.40, color: 0xffffff, size: 0.022, yJit: 0.045, speed: 3.9 }
+  // ===== EFEITO DE ÓRBITA — LINHAS SUAVES (v21) =====
+  // Vários anéis contínuos finos em vez de partículas. Cada anel é uma LineLoop
+  // com material aditivo translúcido. Intensidade amarrada à velocidade do arrasto.
+  const ORBIT_RINGS = [
+    { radius: 1.16, color: 0x8a5cff, baseOpacity: 0.55, tiltX: 0.05,  tiltZ: 0.02, spinSpeed: 0.6 },
+    { radius: 1.22, color: 0x4aa6ff, baseOpacity: 0.70, tiltX:-0.04,  tiltZ: 0.03, spinSpeed: 0.9 },
+    { radius: 1.28, color: 0x7fe4ff, baseOpacity: 0.80, tiltX: 0.03,  tiltZ:-0.04, spinSpeed: 1.2 },
+    { radius: 1.34, color: 0xffffff, baseOpacity: 1.00, tiltX:-0.02,  tiltZ: 0.01, spinSpeed: 1.5 },
+    { radius: 1.40, color: 0xc8d8ff, baseOpacity: 0.45, tiltX: 0.06,  tiltZ:-0.03, spinSpeed: 1.8 }
   ];
   const orbitGroup = new THREE.Group();
   scene.add(orbitGroup);
-  const orbitSystems = [];
-  ORBIT_BANDS.forEach(band=>{
-    const positions = new Float32Array(band.count*3);
-    const angles = new Float32Array(band.count);
-    const radii  = new Float32Array(band.count);
-    const yoff   = new Float32Array(band.count);
-    const spd    = new Float32Array(band.count);
-    for(let i=0;i<band.count;i++){
-      angles[i] = Math.random()*Math.PI*2;
-      radii[i]  = band.rMin + Math.random()*(band.rMax-band.rMin);
-      yoff[i]   = (Math.random()-0.5)*band.yJit;
-      spd[i]    = band.speed*(0.75+Math.random()*0.5);
+  const orbitRings = [];
+  const RING_SEGMENTS = 256; // alto número = linha suave e contínua
+  ORBIT_RINGS.forEach(cfg=>{
+    const pts = [];
+    for(let i=0;i<=RING_SEGMENTS;i++){
+      const a = (i/RING_SEGMENTS) * Math.PI*2;
+      pts.push(new THREE.Vector3(Math.cos(a)*cfg.radius, 0, Math.sin(a)*cfg.radius));
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
-    const mat = new THREE.PointsMaterial({
-      color: band.color, size: band.size, transparent:true, opacity:0,
-      sizeAttenuation:true, depthWrite:false, blending:THREE.AdditiveBlending
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({
+      color: cfg.color, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false
     });
-    const pts = new THREE.Points(geo, mat);
-    orbitGroup.add(pts);
-    orbitSystems.push({band, geo, mat, angles, radii, yoff, spd, baseSize:band.size});
+    const line = new THREE.Line(geo, mat);
+    line.rotation.x = cfg.tiltX;
+    line.rotation.z = cfg.tiltZ;
+    orbitGroup.add(line);
+    orbitRings.push({line, mat, cfg, currentRotY: 0});
   });
 
-  let orbitIntensity = 0; // 0..1, segue a velocidade do globo
+  let orbitIntensity = 0;
 
   function updateOrbit(dt, globeSpeed){
     const tNow = performance.now();
     const speedNorm = config.orbitEnabled ? Math.min(1, Math.abs(globeSpeed)/2.6) : 0;
-    // sobe rápido, desce suave — some ANTES do globo parar
     const rate = speedNorm > orbitIntensity ? 8 : 3.4;
     orbitIntensity += (speedNorm - orbitIntensity) * Math.min(1, dt*rate);
     if(orbitIntensity < 0.012) orbitIntensity = 0;
-
     const dir = Math.sign(globeSpeed) || 1;
-    orbitSystems.forEach((sys,bi)=>{
-      const pos = sys.geo.attributes.position.array;
-      const n = sys.band.count;
-      for(let i=0;i<n;i++){
-        sys.angles[i] += dt * sys.spd[i] * dir * (0.4 + orbitIntensity*1.2);
-        const a = sys.angles[i], r = sys.radii[i];
-        pos[i*3]   = Math.cos(a)*r;
-        pos[i*3+1] = sys.yoff[i] + Math.sin(a*2.0+i)*0.012;
-        pos[i*3+2] = Math.sin(a)*r;
-      }
-      sys.geo.attributes.position.needsUpdate = true;
-      // núcleo branco brilha mais; faixas externas com leve pulso
-      const pulse = 0.85 + 0.15*Math.sin(tNow*0.006 + bi);
-      const peak = bi===3 ? 1.0 : (0.62 + bi*0.06);
-      sys.mat.opacity = orbitIntensity * peak * pulse;
-      sys.mat.size = sys.baseSize * (0.9 + orbitIntensity*0.5);
+    orbitRings.forEach((r, ri)=>{
+      r.currentRotY += dt * r.cfg.spinSpeed * dir * (0.3 + orbitIntensity*1.6);
+      r.line.rotation.y = r.currentRotY;
+      // pulso suave + intensidade pelo arrasto
+      const pulse = 0.92 + 0.08*Math.sin(tNow*0.0015 + ri*1.3);
+      r.mat.opacity = orbitIntensity * r.cfg.baseOpacity * pulse;
     });
     orbitGroup.rotation.y = baseSpin + extraSpin;
   }
 
   // ---- TEXTURA HD EXTERNA: tenta carregar por cima da procedural ----
   const loader = new THREE.TextureLoader();
-  loader.crossOrigin = 'anonymous';
-  const HD_DAY = 'https://cdn.jsdelivr.net/gh/Picasso3DBR/super-calendario-textures/earth-day.jpg';
-  const HD_NIGHT = 'https://cdn.jsdelivr.net/gh/Picasso3DBR/super-calendario-textures/earth-night.jpg';
+  // texturas embarcadas no próprio repositório do app (v22 — sem dependência externa)
+  const HD_DAY = './earth-day.jpg';
+  const HD_NIGHT = './earth-night.jpg';
   let hdDay=null, hdNight=null;
   function tryApplyHD(){
     if(hdDay && hdNight){
@@ -980,12 +999,7 @@
     markInteraction();
   });
 
-  const cometToggle = document.getElementById('cometToggle20');
-  cometToggle.onclick = ()=>{
-    config.cometsEnabled = !config.cometsEnabled;
-    cometToggle.classList.toggle('on', config.cometsEnabled);
-    markInteraction();
-  };
+  // v22: toggle de cometas removido
 
   const orbitToggle = document.getElementById('orbitToggle20');
   orbitToggle.onclick = ()=>{
