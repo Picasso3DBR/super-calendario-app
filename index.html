@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v23 — multi-país (BR + US) com feriados e comemorações por nação, calotas polares brancas para corrigir o artefato do polo.</h2>
+<h2 class="sr-only">Super Calendário v24 — ISS em tempo real orbitando o planeta, base para o pacote premium futuro.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -163,6 +163,32 @@
       </div>
     </div>
     <div id="dragMode20" style="position:absolute; top:6px; right:10px; font-size:9px; color:rgba(255,255,255,0.6); letter-spacing:1px; z-index:3; text-shadow:0 1px 2px rgba(0,0,0,0.9);">—</div>
+
+    <!-- ISS — Estação Espacial Internacional (v24): posição em tempo real -->
+    <div id="issMarker20" style="position:absolute; display:none; pointer-events:none; z-index:5; width:28px; height:28px; margin-left:-14px; margin-top:-14px; transition:opacity 0.35s ease;">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%; filter:drop-shadow(0 0 4px rgba(255,255,255,0.7));">
+        <!-- Painéis solares laterais -->
+        <rect x="2"  y="22" width="14" height="20" rx="1.2" fill="#3a5db8" stroke="#a8c8ff" stroke-width="0.8" opacity="0.9"/>
+        <line x1="9"  y1="22" x2="9"  y2="42" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+        <line x1="2"  y1="32" x2="16" y2="32" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+        <rect x="48" y="22" width="14" height="20" rx="1.2" fill="#3a5db8" stroke="#a8c8ff" stroke-width="0.8" opacity="0.9"/>
+        <line x1="55" y1="22" x2="55" y2="42" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+        <line x1="48" y1="32" x2="62" y2="32" stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>
+        <!-- Treliça central (truss) -->
+        <rect x="16" y="30" width="32" height="4" fill="#c0c8d0" stroke="#7a8088" stroke-width="0.4"/>
+        <!-- Módulos centrais (cápsula habitada) -->
+        <rect x="26" y="24" width="12" height="16" rx="2" fill="#e8ecf0" stroke="#9aa0a8" stroke-width="0.6"/>
+        <circle cx="32" cy="32" r="1.6" fill="#1a2030"/>
+        <!-- Módulos pequenos nas extremidades -->
+        <rect x="20" y="28" width="4" height="8" rx="1" fill="#d0d6dc" stroke="#888" stroke-width="0.3"/>
+        <rect x="40" y="28" width="4" height="8" rx="1" fill="#d0d6dc" stroke="#888" stroke-width="0.3"/>
+      </svg>
+    </div>
+
+    <!-- ISS — etiqueta de status que aparece brevemente quando a posição é atualizada -->
+    <div id="issLabel20" style="position:absolute; left:50%; bottom:10px; transform:translateX(-50%); font-size:8.5px; color:rgba(255,255,255,0.55); letter-spacing:0.5px; pointer-events:none; z-index:5; text-shadow:0 1px 2px rgba(0,0,0,0.9); transition:opacity 0.6s ease; opacity:0;">
+      ISS · —
+    </div>
   </div>
 
   <div style="text-align:center; padding:8px 0 6px;">
@@ -222,13 +248,21 @@
 
     <div class="config-row">
       <div>
+        <div class="config-label">ISS — Estação Espacial Internacional</div>
+        <div class="config-desc">posição em tempo real sobre o planeta</div>
+      </div>
+      <div id="issToggle20" class="mini-toggle on"><span></span></div>
+    </div>
+
+    <div class="config-row">
+      <div>
         <div class="config-label">ponto de localização menor</div>
         <div class="config-desc">reduz o pulso verde de Nova York em 30%</div>
       </div>
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v23</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v24</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -352,6 +386,7 @@
   const config = {
     galaxyVisibility: 100,
     orbitEnabled: true,
+    issEnabled: true,
     smallPin: false
   };
 
@@ -612,7 +647,7 @@
 
   let currentDate = new Date();
   let viewDate = new Date(currentDate);
-  let events = JSON.parse(localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
+  let events = JSON.parse(localStorage.getItem('sc_events_v24') || localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
   let currentEventIndex = 0;
 
   function dateKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -621,7 +656,7 @@
            viewDate.getMonth()===currentDate.getMonth() &&
            viewDate.getDate()===currentDate.getDate();
   }
-  function saveEvents(){ try{ localStorage.setItem('sc_events_v23', JSON.stringify(events)); }catch(e){} }
+  function saveEvents(){ try{ localStorage.setItem('sc_events_v24', JSON.stringify(events)); }catch(e){} }
 
   function getEventsForDate(date){
     const direct = (events[dateKey(date)] || []).map((ev, idx) => ({...ev, _key: dateKey(date), _idx: idx}));
@@ -1021,6 +1056,133 @@
     } else { cityPin.style.display='none'; }
   }
 
+  // ===== ISS — ESTAÇÃO ESPACIAL INTERNACIONAL (v24) =====
+  // Fonte: api.wheretheiss.at (gratuita, sem chave). Atualiza posição a cada 10s.
+  // Entre updates, interpolamos para movimento fluido (a ISS anda ~77 km / 10 s).
+  // Raio orbital = 1.06 (Terra=1.00 + cerca de 6% representando os 408 km de altitude real).
+  const ISS_ORBIT_RADIUS = 1.06;
+  const ISS_FETCH_INTERVAL_MS = 10000; // 10 segundos
+  const ISS_API_URL = 'https://api.wheretheiss.at/v1/satellites/25544';
+
+  const issMarker = document.getElementById('issMarker20');
+  const issLabel = document.getElementById('issLabel20');
+  const issVec = new THREE.Vector3();
+  const issProj = new THREE.Vector3();
+
+  // estado da posição: mantemos a amostra atual e a próxima, interpolando entre elas
+  let issCurrent = null;   // {lat, lng, t}  — onde está agora
+  let issNext = null;      // {lat, lng, t}  — onde queremos chegar
+  let issFetchInFlight = false;
+
+  function latLngToLocalVec(lat, lng, radius){
+    // mesma convenção da Terra: lng=0 vira (1,0,0), polo norte vira (0,1,0)
+    const latR = lat * Math.PI/180;
+    const lngR = lng * Math.PI/180;
+    return new THREE.Vector3(
+      Math.cos(latR) * Math.cos(lngR) * radius,
+      Math.sin(latR) * radius,
+      -Math.cos(latR) * Math.sin(lngR) * radius
+    );
+  }
+
+  async function fetchISS(){
+    if(issFetchInFlight) return;
+    issFetchInFlight = true;
+    try {
+      const resp = await fetch(ISS_API_URL);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const data = await resp.json();
+      if(typeof data.latitude !== 'number' || typeof data.longitude !== 'number'){
+        throw new Error('payload inválido');
+      }
+      const sample = { lat: data.latitude, lng: data.longitude, t: performance.now() };
+      if(!issCurrent){
+        // primeira amostra: posiciona direto
+        issCurrent = sample;
+        issNext = sample;
+      } else {
+        // amostras seguintes: vira o alvo da interpolação
+        issCurrent = issNext;
+        issNext = sample;
+      }
+      // mostra label brevemente para feedback de "atualização recebida"
+      issLabel.textContent = 'ISS · '+data.latitude.toFixed(1)+'° '+data.longitude.toFixed(1)+'°';
+      issLabel.style.opacity = '1';
+      setTimeout(()=>{ issLabel.style.opacity = '0'; }, 1500);
+    } catch(err){
+      console.log('[ISS] falha ao buscar posição:', err.message);
+    } finally {
+      issFetchInFlight = false;
+    }
+  }
+
+  function interpolatedISSLatLng(){
+    // se temos só uma amostra, retorna ela mesma
+    if(!issCurrent || !issNext) return null;
+    if(issCurrent === issNext) return { lat: issCurrent.lat, lng: issCurrent.lng };
+    const dt = issNext.t - issCurrent.t;
+    if(dt <= 0) return { lat: issNext.lat, lng: issNext.lng };
+    const elapsed = performance.now() - issNext.t;
+    // fator de interpolação: 0 quando acabou de receber issNext, 1 ao final do intervalo,
+    // depois disso extrapola levemente (a ISS continua se movendo entre fetches atrasados)
+    let alpha = elapsed / dt;
+    if(alpha < 0) alpha = 0;
+    if(alpha > 1.5) alpha = 1.5; // limita extrapolação
+    // interpolação direta no globo — para distâncias curtas (~77 km), linear em lat/lng é ok
+    // longitude precisa lidar com a passagem 180°/-180° (wrap-around)
+    let dLng = issNext.lng - issCurrent.lng;
+    if(dLng > 180) dLng -= 360;
+    if(dLng < -180) dLng += 360;
+    let lng = issCurrent.lng + dLng * alpha;
+    if(lng > 180) lng -= 360;
+    if(lng < -180) lng += 360;
+    const lat = issCurrent.lat + (issNext.lat - issCurrent.lat) * alpha;
+    return { lat, lng };
+  }
+
+  function updateISS(){
+    if(!config.issEnabled){
+      issMarker.style.display = 'none';
+      issLabel.style.opacity = '0';
+      return;
+    }
+    const pos = interpolatedISSLatLng();
+    if(!pos){
+      // aguardando primeira amostra da API
+      issMarker.style.display = 'none';
+      return;
+    }
+    earth.updateMatrixWorld();
+    // posição local da ISS no referencial da Terra (rotaciona junto com o globo)
+    const localVec = latLngToLocalVec(pos.lat, pos.lng, ISS_ORBIT_RADIUS);
+    issVec.copy(localVec).applyMatrix4(earth.matrixWorld);
+    // testa se está do nosso lado da Terra (frente da câmera) — ISS atrás some
+    const camDir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+    const toPoint = issVec.clone().sub(camera.position);
+    const onFront = toPoint.dot(camDir) > 0;
+    // adicional: comparar com a normal do globo; se o ângulo passa de ~75°, esconde
+    const surfaceNormal = issVec.clone().normalize();
+    const camFromCenter = camera.position.clone().normalize();
+    const visible = onFront && surfaceNormal.dot(camFromCenter) > -0.15;
+    if(!visible){
+      issMarker.style.opacity = '0';
+      setTimeout(()=>{ if(issMarker.style.opacity === '0') issMarker.style.display = 'none'; }, 400);
+      return;
+    }
+    issMarker.style.display = 'block';
+    issMarker.style.opacity = '1';
+    issProj.copy(issVec).project(camera);
+    const rect = wrap.getBoundingClientRect();
+    const x = (issProj.x*0.5+0.5)*rect.width;
+    const y = (-issProj.y*0.5+0.5)*rect.height;
+    issMarker.style.left = x+'px';
+    issMarker.style.top = y+'px';
+  }
+
+  // dispara primeira busca e configura refresh
+  fetchISS();
+  setInterval(fetchISS, ISS_FETCH_INTERVAL_MS);
+
   // ===== ARRASTO COM INÉRCIA =====
   let dragging=false, dragStartX=0, dragStartDate=null;
   let lastDragX=0, lastDragTime=0, dragVelocity=0;
@@ -1106,6 +1268,13 @@
   orbitToggle.onclick = ()=>{
     config.orbitEnabled = !config.orbitEnabled;
     orbitToggle.classList.toggle('on', config.orbitEnabled);
+    markInteraction();
+  };
+
+  const issToggle = document.getElementById('issToggle20');
+  issToggle.onclick = ()=>{
+    config.issEnabled = !config.issEnabled;
+    issToggle.classList.toggle('on', config.issEnabled);
     markInteraction();
   };
 
@@ -1443,6 +1612,7 @@
 
     updateOrbit(dt, effectiveSpinSpeed);
     updateCityPin();
+    updateISS();
     renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
