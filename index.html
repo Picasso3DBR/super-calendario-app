@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v22 — texturas embarcadas no repositório, clima real Open-Meteo, banco de comemorações BR, cometas removidos.</h2>
+<h2 class="sr-only">Super Calendário v23 — multi-país (BR + US) com feriados e comemorações por nação, calotas polares brancas para corrigir o artefato do polo.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -228,7 +228,7 @@
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v22</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v23</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -387,15 +387,23 @@
   const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
   const WEEKDAYS = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 
-  function seasonNorth(d){
-    // Estações do hemisfério norte (Nova York)
-    // Equinócio primavera: ~20/mar · Solstício verão: ~21/jun
-    // Equinócio outono: ~22/set · Solstício inverno: ~21/dez
+  function seasonForLatitude(d, lat){
+    // Em torno do equador (entre +10° e -10°), conceito de estação é fraco — usa norte por default
+    // Hemisfério norte: lat > 0  · Hemisfério sul: lat < 0
     const m=d.getMonth(), day=d.getDate();
-    if((m===11&&day>=21)||m<2||(m===2&&day<20)) return 'inverno';
-    if((m===2&&day>=20)||m<5||(m===5&&day<21)) return 'primavera';
-    if((m===5&&day>=21)||m<8||(m===8&&day<23)) return 'verão';
-    return 'outono';
+    if(lat >= 0){
+      // Hemisfério norte
+      if((m===11&&day>=21)||m<2||(m===2&&day<20)) return 'inverno';
+      if((m===2&&day>=20)||m<5||(m===5&&day<21)) return 'primavera';
+      if((m===5&&day>=21)||m<8||(m===8&&day<23)) return 'verão';
+      return 'outono';
+    } else {
+      // Hemisfério sul (estações invertidas)
+      if((m===11&&day>=21)||m<2||(m===2&&day<20)) return 'verão';
+      if((m===2&&day>=20)||m<5||(m===5&&day<21)) return 'outono';
+      if((m===5&&day>=21)||m<8||(m===8&&day<23)) return 'inverno';
+      return 'primavera';
+    }
   }
   function easterDate(year){
     const a=year%19, b=Math.floor(year/100), c=year%100;
@@ -411,22 +419,49 @@
   }
   function addDays(date,days){ const d=new Date(date); d.setDate(d.getDate()+days); return d; }
   function holidaysForYear(year){
-    const easter=easterDate(year);
-    return [
-      {month:0,day:1,name:'Confraternização Universal',short:'ANO NOVO'},
-      {month:addDays(easter,-47).getMonth(),day:addDays(easter,-47).getDate(),name:'Carnaval',short:'CARNAVAL'},
-      {month:addDays(easter,-2).getMonth(),day:addDays(easter,-2).getDate(),name:'Sexta-feira Santa',short:'SEXTA SANTA'},
-      {month:easter.getMonth(),day:easter.getDate(),name:'Páscoa',short:'PÁSCOA'},
-      {month:3,day:21,name:'Tiradentes',short:'TIRADENTES'},
-      {month:4,day:1,name:'Dia do Trabalhador',short:'TRABALHADOR'},
-      {month:addDays(easter,60).getMonth(),day:addDays(easter,60).getDate(),name:'Corpus Christi',short:'CORPUS CHRISTI'},
-      {month:8,day:7,name:'Independência do Brasil',short:'INDEPENDÊNCIA'},
-      {month:9,day:12,name:'N. Sra. Aparecida',short:'APARECIDA'},
-      {month:10,day:2,name:'Finados',short:'FINADOS'},
-      {month:10,day:15,name:'Proclamação da República',short:'REPÚBLICA'},
-      {month:10,day:20,name:'Consciência Negra',short:'CONSC. NEGRA'},
-      {month:11,day:25,name:'Natal',short:'NATAL'}
-    ];
+    // v23: feriados vêm do JSON multi-país (COUNTRY_DATA). Fallback BR se ainda não carregou.
+    if(!COUNTRY_DATA){
+      // fallback mínimo enquanto o JSON não terminou de carregar
+      return [
+        {month:0,day:1,name:'Confraternização Universal',short:'ANO NOVO'},
+        {month:11,day:25,name:'Natal',short:'NATAL'}
+      ];
+    }
+    const list = [];
+    // 1) Feriados fixos
+    for(const key in COUNTRY_DATA.fixed_holidays){
+      const [mm, dd] = key.split('-').map(n => parseInt(n,10));
+      const fh = COUNTRY_DATA.fixed_holidays[key];
+      list.push({month: mm-1, day: dd, name: fh.name, short: fh.short});
+    }
+    // 2) Feriados móveis — calculados via regras
+    const easter = easterDate(year);
+    (COUNTRY_DATA.movable_holidays || []).forEach(mh => {
+      let d = null;
+      if(mh.rule === 'easter_offset'){
+        d = addDays(easter, mh.offset);
+      } else if(mh.rule === 'nth_weekday'){
+        // n-ésima ocorrência de weekday (0=dom, 1=seg...) no mês informado
+        d = nthWeekdayOfMonth(year, mh.month-1, mh.weekday, mh.n);
+      } else if(mh.rule === 'last_weekday'){
+        d = lastWeekdayOfMonth(year, mh.month-1, mh.weekday);
+      }
+      if(d) list.push({month: d.getMonth(), day: d.getDate(), name: mh.name, short: mh.short});
+    });
+    return list;
+  }
+
+  // helpers para feriados móveis tipo "última segunda de maio", "4ª quinta de novembro"
+  function nthWeekdayOfMonth(year, monthIdx, weekday, n){
+    // n=1 → primeira ocorrência; n=2 → segunda; etc.
+    const first = new Date(year, monthIdx, 1);
+    const offset = (weekday - first.getDay() + 7) % 7;
+    return new Date(year, monthIdx, 1 + offset + (n-1)*7);
+  }
+  function lastWeekdayOfMonth(year, monthIdx, weekday){
+    const lastDay = new Date(year, monthIdx+1, 0); // último dia do mês
+    const offset = (lastDay.getDay() - weekday + 7) % 7;
+    return new Date(year, monthIdx, lastDay.getDate() - offset);
   }
   const holidayCache={};
   function holidays(year){ if(!holidayCache[year]) holidayCache[year]=holidaysForYear(year); return holidayCache[year]; }
@@ -444,22 +479,42 @@
     }
     return null;
   }
-  // ===== BANCO DE COMEMORAÇÕES (v22) =====
-  // Carregado de ./comemoracoes.json — estruturado por país (preparado para multi-país futuro).
-  // País atual do app: BR. Quando o GPS for ativado (v23), pode mudar dinamicamente.
-  const CURRENT_COUNTRY = 'BR';
-  let COMEMORACOES = {}; // populado via fetch
+  // ===== DETECÇÃO DE PAÍS POR COORDENADA (v23) =====
+  // Tabela local mínima — caixas geográficas aproximadas dos países suportados.
+  // Quando o GPS for ligado (v24), pode-se usar Nominatim para precisão fina;
+  // para o app fixo em NY agora, esta detecção local já basta.
+  function detectCountry(lat, lng){
+    // EUA continental + Alaska + Hawaii (caixa aproximada que pega NYC, LA, etc.)
+    if(lat >= 24 && lat <= 49 && lng >= -125 && lng <= -66) return 'US';
+    if(lat >= 51 && lat <= 72 && lng >= -170 && lng <= -130) return 'US'; // Alaska
+    if(lat >= 18 && lat <= 23 && lng >= -161 && lng <= -154) return 'US'; // Hawaii
+    // Brasil
+    if(lat >= -34 && lat <= 5 && lng >= -74 && lng <= -34) return 'BR';
+    // Fallback: hemisfério oeste em América do Sul → BR; resto → US (provisório)
+    return (lat < 13) ? 'BR' : 'US';
+  }
+  const CURRENT_COUNTRY = detectCountry(USER_LAT, USER_LNG);
+  console.log('[país] detectado:', CURRENT_COUNTRY, 'para coordenada', USER_LAT, USER_LNG);
+
+  let COUNTRY_DATA = null;  // populado após fetch do JSON
+  let COMEMORACOES = {};    // alias para COUNTRY_DATA.comemoracoes
 
   fetch('./comemoracoes.json')
     .then(r => r.ok ? r.json() : Promise.reject('HTTP '+r.status))
     .then(data => {
-      COMEMORACOES = data[CURRENT_COUNTRY] || {};
+      COUNTRY_DATA = data[CURRENT_COUNTRY];
+      if(!COUNTRY_DATA){
+        console.warn('[país] dados não encontrados para '+CURRENT_COUNTRY+', usando BR como fallback');
+        COUNTRY_DATA = data['BR'];
+      }
+      COMEMORACOES = COUNTRY_DATA.comemoracoes || {};
+      // invalida o cache de feriados para que sejam recalculados com os dados do país certo
+      Object.keys(holidayCache).forEach(k => delete holidayCache[k]);
       console.log('[comemoracoes] carregadas: '+Object.keys(COMEMORACOES).length+' datas para '+CURRENT_COUNTRY);
-      renderWiki();
+      renderAll();
     })
     .catch(err => {
       console.log('[comemoracoes] falha ao carregar JSON, usando fallback mínimo:', err);
-      // fallback mínimo embarcado para o app não ficar mudo se o JSON não carregar
       COMEMORACOES = {
         '05-13':['Dia da Abolição da Escravatura','Dia do Zootecnista'],
         '06-12':['Dia dos Namorados (Brasil)']
@@ -557,7 +612,7 @@
 
   let currentDate = new Date();
   let viewDate = new Date(currentDate);
-  let events = JSON.parse(localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
+  let events = JSON.parse(localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
   let currentEventIndex = 0;
 
   function dateKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -566,7 +621,7 @@
            viewDate.getMonth()===currentDate.getMonth() &&
            viewDate.getDate()===currentDate.getDate();
   }
-  function saveEvents(){ try{ localStorage.setItem('sc_events_v22', JSON.stringify(events)); }catch(e){} }
+  function saveEvents(){ try{ localStorage.setItem('sc_events_v23', JSON.stringify(events)); }catch(e){} }
 
   function getEventsForDate(date){
     const direct = (events[dateKey(date)] || []).map((ev, idx) => ({...ev, _key: dateKey(date), _idx: idx}));
@@ -596,7 +651,7 @@
     const hh=String(viewDate.getHours()).padStart(2,'0');
     const mm=String(viewDate.getMinutes()).padStart(2,'0');
     document.getElementById('liveTime20').textContent = hh+':'+mm;
-    document.getElementById('season20').textContent = seasonNorth(viewDate);
+    document.getElementById('season20').textContent = seasonForLatitude(viewDate, USER_LAT);
     // clima real apenas para o dia de HOJE; outras datas usam simulado
     const w = isViewToday() ? getWeatherForToday() : simulateWeather(viewDate);
     document.getElementById('weatherIcon').textContent = w.icon;
@@ -786,6 +841,52 @@
   spinPivot.add(latPivot);
   latPivot.add(earth);
   latPivot.rotation.x = USER_LAT * Math.PI/180;
+
+  // ===== CALOTAS POLARES (v23) =====
+  // Disfarçam o artefato de mapeamento equiretangular nos polos.
+  // SphereGeometry com thetaStart/thetaLength limitados = só o "topo" ou "fundo" da esfera.
+  // Raio levemente maior que o da Terra (1.001) para ficar por cima, sem z-fighting.
+  function makeIceCapMaterial(){
+    return new THREE.ShaderMaterial({
+      uniforms: { sunDirLocal: earthMat.uniforms.sunDirLocal },
+      vertexShader: `
+        varying vec3 vLocalNormal;
+        void main(){
+          vLocalNormal = normalize(normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 sunDirLocal;
+        varying vec3 vLocalNormal;
+        void main(){
+          // gelo branco-azulado, com iluminação seguindo o sol (igual à Terra)
+          vec3 iceCol = vec3(0.92, 0.94, 0.97);
+          float lambert = dot(vLocalNormal, normalize(sunDirLocal));
+          float terminator = 0.14;
+          float dayMix = smoothstep(-terminator, terminator, lambert);
+          vec3 ambient = iceCol * 0.10;
+          vec3 lit = iceCol * max(0.0, lambert) * 1.15 + ambient;
+          // lado noturno também aparece sutil (gelo reflete luar)
+          vec3 night = iceCol * 0.08;
+          vec3 col = mix(night, lit, dayMix);
+          gl_FragColor = vec4(col, 1.0);
+        }`
+    });
+  }
+
+  // calota NORTE — thetaStart=0 (topo), thetaLength=0.18π cobre ~16° abaixo do polo
+  const iceNorth = new THREE.Mesh(
+    new THREE.SphereGeometry(1.001, 64, 32, 0, Math.PI*2, 0, Math.PI*0.18),
+    makeIceCapMaterial()
+  );
+  latPivot.add(iceNorth);
+
+  // calota SUL — thetaStart próximo de π (fundo), até π
+  const iceSouth = new THREE.Mesh(
+    new THREE.SphereGeometry(1.001, 64, 32, 0, Math.PI*2, Math.PI*0.84, Math.PI*0.16),
+    makeIceCapMaterial()
+  );
+  latPivot.add(iceSouth);
 
   // halo atmosférico removido a pedido (v21)
 
