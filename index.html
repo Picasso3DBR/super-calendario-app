@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v26 — cubemap fatiado da cruz horizontal canônica (4×3), mapeamento corrigido sem distorção nem retalhos.</h2>
+<h2 class="sr-only">Super Calendário v27 — cubemap alinhado ao mundo (não ao mesh), inclinação aplicada à câmera, ponto verde no lugar correto.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -262,7 +262,7 @@
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v26</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v27</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -757,7 +757,21 @@
   // ===== TERRA 3D =====
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-  camera.position.z = 5.4;
+  // v27: posiciona a câmera olhando para a coordenada da cidade do usuário (NY = 40.71°N, -74.01°W)
+  // Em coordenadas locais do globo: cityVec = (cos(lat)cos(lng), sin(lat), -cos(lat)sin(lng))
+  // A câmera fica afastada na direção desse vetor, olhando para a origem.
+  {
+    const latR = USER_LAT * Math.PI/180;
+    const lngR = USER_LNG * Math.PI/180;
+    const dist = 5.4;
+    camera.position.set(
+       Math.cos(latR)*Math.cos(lngR) * dist,
+       Math.sin(latR) * dist,
+      -Math.cos(latR)*Math.sin(lngR) * dist
+    );
+    camera.up.set(0, 1, 0); // polo norte sempre para cima
+    camera.lookAt(0, 0, 0);
+  }
   const renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:true});
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -817,7 +831,10 @@
   scene.add(spinPivot);
   spinPivot.add(latPivot);
   latPivot.add(earth);
-  latPivot.rotation.x = USER_LAT * Math.PI/180;
+  // v27: latPivot SEM rotação — a inclinação visual (mostrar a cidade do usuário centralizada)
+  // será feita rotacionando a CÂMERA, não o globo. Assim o cubemap continua alinhado
+  // ao sistema de coordenadas geográficas (polo norte sempre para cima).
+  latPivot.rotation.x = 0;
 
   // ===== CALOTAS POLARES REMOVIDAS no v25 =====
   // No v23 elas disfarçavam o artefato do mapeamento equirectangular nos polos.
@@ -827,15 +844,10 @@
   // halo atmosférico removido a pedido (v21)
 
   function targetSpinY(){
-    const latR = USER_LAT * Math.PI/180;
-    const lngR = USER_LNG * Math.PI/180;
-    const px = Math.cos(latR)*Math.cos(lngR);
-    const py = Math.sin(latR);
-    const pz = -Math.cos(latR)*Math.sin(lngR);
-    const cx = Math.cos(latR), sx = Math.sin(latR);
-    const py2 = py*cx - pz*sx;
-    const pz2 = py*sx + pz*cx;
-    return -Math.atan2(px, pz2);
+    // v27: a câmera já está posicionada olhando para a coordenada da cidade.
+    // O estado de repouso do spin é simplesmente 0 — sem rotação do globo.
+    // Qualquer rotação aplicada via extraSpin movimenta o globo em torno do eixo Y polar.
+    return 0;
   }
   let baseSpin = targetSpinY();
   let extraSpin = 0;
