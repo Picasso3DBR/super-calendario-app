@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v25 — cubemap real com 6 faces separadas, sem distorção nos polos, calotas brancas removidas.</h2>
+<h2 class="sr-only">Super Calendário v26 — cubemap fatiado da cruz horizontal canônica (4×3), mapeamento corrigido sem distorção nem retalhos.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -262,7 +262,7 @@
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v25</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v26</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -647,7 +647,7 @@
 
   let currentDate = new Date();
   let viewDate = new Date(currentDate);
-  let events = JSON.parse(localStorage.getItem('sc_events_v25') || localStorage.getItem('sc_events_v24') || localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
+  let events = JSON.parse(localStorage.getItem('sc_events_v26') || localStorage.getItem('sc_events_v25') || localStorage.getItem('sc_events_v24') || localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
   let currentEventIndex = 0;
 
   function dateKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -656,7 +656,7 @@
            viewDate.getMonth()===currentDate.getMonth() &&
            viewDate.getDate()===currentDate.getDate();
   }
-  function saveEvents(){ try{ localStorage.setItem('sc_events_v25', JSON.stringify(events)); }catch(e){} }
+  function saveEvents(){ try{ localStorage.setItem('sc_events_v26', JSON.stringify(events)); }catch(e){} }
 
   function getEventsForDate(date){
     const direct = (events[dateKey(date)] || []).map((ev, idx) => ({...ev, _key: dateKey(date), _idx: idx}));
@@ -773,8 +773,8 @@
 
   const earthMat = new THREE.ShaderMaterial({
     uniforms:{
-      dayMap:{value: null},    // populado pelo CubeTextureLoader (v25)
-      nightMap:{value: null},  // populado pelo CubeTextureLoader (v25)
+      dayMap:{value: null},    // populado pelo fatiamento da cruz (v26)
+      nightMap:{value: null},  // populado pelo fatiamento da cruz (v26)
       sunDirLocal:{value:new THREE.Vector3(1,0,0)},
       ready:{value:0}
     },
@@ -893,10 +893,17 @@
     orbitGroup.rotation.y = baseSpin + extraSpin;
   }
 
-  // ===== CARREGAMENTO DAS TEXTURAS CUBEMAP (v25) =====
-  // 6 faces separadas por mapa (dia e noite) — padrão WebGL canônico.
-  // THREE.CubeTextureLoader espera ordem: [posX, negX, posY, negY, posZ, negZ]
-  const cubeLoader = new THREE.CubeTextureLoader();
+  // ===== CARREGAMENTO DAS TEXTURAS CUBEMAP (v26) =====
+  // As 6 faces separadas no repositório (posx, negx, ...) tinham mapeamento incorreto,
+  // gerando "retalhos" no globo. A solução robusta é usar a CRUZ HORIZONTAL ÚNICA
+  // (earth_cubemap_day_fixed.jpg, 4096×3072) — layout canônico:
+  //
+  //          [    ][ +Y ][    ][    ]
+  //          [ -X ][ +Z ][ +X ][ -Z ]
+  //          [    ][ -Y ][    ][    ]
+  //
+  // Cada célula = 1024×1024. Fatiamos em JS e montamos o cubemap na ordem WebGL [+X,-X,+Y,-Y,+Z,-Z].
+
   let dayCubeLoaded = false, nightCubeLoaded = false;
   function markReady(){
     if(dayCubeLoaded && nightCubeLoaded){
@@ -905,34 +912,53 @@
       loadingMsg.style.display = 'none';
     }
   }
-  const dayCube = cubeLoader.load(
-    [
-      './earth_cubemap_day_fixed_posx.jpg',
-      './earth_cubemap_day_fixed_negx.jpg',
-      './earth_cubemap_day_fixed_posy.jpg',
-      './earth_cubemap_day_fixed_negy.jpg',
-      './earth_cubemap_day_fixed_posz.jpg',
-      './earth_cubemap_day_fixed_negz.jpg'
-    ],
-    ()=>{ dayCubeLoaded = true; earthMat.uniforms.dayMap.value = dayCube; markReady(); },
-    undefined,
-    (err)=>{ console.log('[cubemap dia] falha:', err); }
-  );
-  const nightCube = cubeLoader.load(
-    [
-      './earth_cubemap_night_fixed_posx.jpg',
-      './earth_cubemap_night_fixed_negx.jpg',
-      './earth_cubemap_night_fixed_posy.jpg',
-      './earth_cubemap_night_fixed_negy.jpg',
-      './earth_cubemap_night_fixed_posz.jpg',
-      './earth_cubemap_night_fixed_negz.jpg'
-    ],
-    ()=>{ nightCubeLoaded = true; earthMat.uniforms.nightMap.value = nightCube; markReady(); },
-    undefined,
-    (err)=>{ console.log('[cubemap noite] falha:', err); }
-  );
-  // se demorar mais de 6s, esconde o loadingMsg de qualquer forma
-  setTimeout(()=>{ loadingMsg.style.display='none'; }, 6000);
+
+  // Sliceia uma imagem de cruz 4×3 em 6 canvas 1024×1024 na ordem WebGL canônica
+  // Retorna um THREE.CubeTexture pronto para usar.
+  function sliceCrossIntoCubeTexture(crossImage){
+    const W = crossImage.naturalWidth, H = crossImage.naturalHeight;
+    const cellW = W/4, cellH = H/3;
+    // posições na grade (col, row) das 6 faces na ordem WebGL [+X,-X,+Y,-Y,+Z,-Z]
+    const layout = [
+      { face:'+X', col:2, row:1 },
+      { face:'-X', col:0, row:1 },
+      { face:'+Y', col:1, row:0 },
+      { face:'-Y', col:1, row:2 },
+      { face:'+Z', col:1, row:1 },
+      { face:'-Z', col:3, row:1 }
+    ];
+    const faceCanvases = layout.map(p => {
+      const c = document.createElement('canvas');
+      c.width = cellW; c.height = cellH;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(crossImage, p.col*cellW, p.row*cellH, cellW, cellH, 0, 0, cellW, cellH);
+      return c;
+    });
+    const cubeTex = new THREE.CubeTexture(faceCanvases);
+    cubeTex.needsUpdate = true;
+    return cubeTex;
+  }
+
+  function loadCrossAndBuildCube(url){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(sliceCrossIntoCubeTexture(img));
+      img.onerror = (err) => reject(err);
+      img.src = url;
+    });
+  }
+
+  loadCrossAndBuildCube('./earth_cubemap_day_fixed.jpg')
+    .then(tex => { earthMat.uniforms.dayMap.value = tex; dayCubeLoaded = true; markReady(); })
+    .catch(err => console.log('[cubemap dia] falha ao montar:', err));
+
+  loadCrossAndBuildCube('./earth_cubemap_night_fixed.jpg')
+    .then(tex => { earthMat.uniforms.nightMap.value = tex; nightCubeLoaded = true; markReady(); })
+    .catch(err => console.log('[cubemap noite] falha ao montar:', err));
+
+  // se demorar mais de 8s, esconde o loadingMsg de qualquer forma
+  setTimeout(()=>{ loadingMsg.style.display='none'; }, 8000);
 
   function computeSunDirLocal(date){
     const utc = new Date(date.getTime());
