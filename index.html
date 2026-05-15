@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v24 — ISS em tempo real orbitando o planeta, base para o pacote premium futuro.</h2>
+<h2 class="sr-only">Super Calendário v25 — cubemap real com 6 faces separadas, sem distorção nos polos, calotas brancas removidas.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -262,7 +262,7 @@
       <div id="pinSizeToggle20" class="mini-toggle"><span></span></div>
     </div>
 
-    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v24</div>
+    <div style="margin-top:auto; font-size:9px; color:#555; text-align:center;">SUPER CALENDÁRIO · PB Studio Brasil · v25</div>
   </div>
 
   <!-- VISTA DE MÊS -->
@@ -647,7 +647,7 @@
 
   let currentDate = new Date();
   let viewDate = new Date(currentDate);
-  let events = JSON.parse(localStorage.getItem('sc_events_v24') || localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
+  let events = JSON.parse(localStorage.getItem('sc_events_v25') || localStorage.getItem('sc_events_v24') || localStorage.getItem('sc_events_v23') || localStorage.getItem('sc_events_v22') || localStorage.getItem('sc_events_v21') || localStorage.getItem('sc_events_v20') || localStorage.getItem('sc_events_v19') || '{}');
   let currentEventIndex = 0;
 
   function dateKey(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -656,7 +656,7 @@
            viewDate.getMonth()===currentDate.getMonth() &&
            viewDate.getDate()===currentDate.getDate();
   }
-  function saveEvents(){ try{ localStorage.setItem('sc_events_v24', JSON.stringify(events)); }catch(e){} }
+  function saveEvents(){ try{ localStorage.setItem('sc_events_v25', JSON.stringify(events)); }catch(e){} }
 
   function getEventsForDate(date){
     const direct = (events[dateKey(date)] || []).map((ev, idx) => ({...ev, _key: dateKey(date), _idx: idx}));
@@ -769,96 +769,38 @@
   resize();
   window.addEventListener('resize',resize);
 
-  // ---- TEXTURA PROCEDURAL DE FALLBACK: Terra desenhada no código ----
-  // Garante que o planeta SEMPRE renderize, mesmo sem nenhuma textura externa.
-  function makeProceduralEarth(){
-    const W = 1024, H = 512;
-    // --- mapa diurno ---
-    const dayC = document.createElement('canvas'); dayC.width=W; dayC.height=H;
-    const d = dayC.getContext('2d');
-    // oceano com leve gradiente de profundidade
-    const oce = d.createLinearGradient(0,0,0,H);
-    oce.addColorStop(0,'#0a2a4a'); oce.addColorStop(0.5,'#0d3c63'); oce.addColorStop(1,'#0a2a4a');
-    d.fillStyle = oce; d.fillRect(0,0,W,H);
-    // continentes — blobs aproximados, suficientes para leitura de "Terra"
-    function landBlob(cx,cy,rx,ry,col){
-      d.fillStyle = col;
-      d.beginPath();
-      for(let a=0;a<=Math.PI*2+0.01;a+=0.18){
-        const wob = 0.78 + 0.30*Math.sin(a*3 + cx*0.04) + 0.14*Math.cos(a*5 + cy*0.05);
-        const x = cx + Math.cos(a)*rx*wob;
-        const y = cy + Math.sin(a)*ry*wob;
-        if(a===0) d.moveTo(x,y); else d.lineTo(x,y);
-      }
-      d.closePath(); d.fill();
-    }
-    const green='#2f6b34', greenD='#244f27', sand='#7a8a3f', ice='#cdd6dc';
-    // Américas
-    landBlob(170,150,52,46,green);
-    landBlob(150,260,30,70,green);
-    landBlob(165,320,38,54,greenD);
-    // África + Europa
-    landBlob(540,180,40,40,sand);
-    landBlob(560,270,52,66,green);
-    landBlob(545,120,46,26,greenD);
-    // Ásia
-    landBlob(700,160,96,60,green);
-    landBlob(760,250,46,40,greenD);
-    // Oceania
-    landBlob(820,340,40,28,sand);
-    // calotas polares
-    d.fillStyle = ice;
-    d.fillRect(0,0,W,26); d.fillRect(0,H-30,W,30);
-    // ruído sutil de terreno
-    for(let i=0;i<2600;i++){
-      const x=Math.random()*W, y=28+Math.random()*(H-58);
-      d.fillStyle = 'rgba(255,255,255,'+(Math.random()*0.05)+')';
-      d.fillRect(x,y,1,1);
-    }
-    const dayTex = new THREE.CanvasTexture(dayC);
-
-    // --- mapa noturno: preto com luzes de cidade sobre as massas de terra ---
-    const nightC = document.createElement('canvas'); nightC.width=W; nightC.height=H;
-    const n = nightC.getContext('2d');
-    n.fillStyle = '#01030a'; n.fillRect(0,0,W,H);
-    // amostra o mapa diurno: onde for "terra" (não azul), espalha luzes
-    const dayImg = d.getImageData(0,0,W,H).data;
-    function isLand(x,y){
-      const idx = (y*W+x)*4;
-      const r=dayImg[idx], g=dayImg[idx+1], b=dayImg[idx+2];
-      return (g > b) || (r > 90 && g > 90); // verde/areia/gelo, não oceano
-    }
-    n.fillStyle = '#ffd27a';
-    for(let i=0;i<5200;i++){
-      const x=(Math.random()*W)|0, y=(30+Math.random()*(H-60))|0;
-      if(isLand(x,y) && Math.random()<0.5){
-        const s = Math.random()<0.85 ? 0.8 : 1.6;
-        n.globalAlpha = 0.35 + Math.random()*0.6;
-        n.fillRect(x,y,s,s);
-      }
-    }
-    n.globalAlpha = 1;
-    const nightTex = new THREE.CanvasTexture(nightC);
-    return {dayTex, nightTex};
-  }
-
-  const proc = makeProceduralEarth();
+  // v25: textura procedural removida — cubemap real cobre 100% dos casos sem distorção
 
   const earthMat = new THREE.ShaderMaterial({
     uniforms:{
-      dayMap:{value: proc.dayTex}, nightMap:{value: proc.nightTex},
-      sunDirLocal:{value:new THREE.Vector3(1,0,0)}, ready:{value:1}
+      dayMap:{value: null},    // populado pelo CubeTextureLoader (v25)
+      nightMap:{value: null},  // populado pelo CubeTextureLoader (v25)
+      sunDirLocal:{value:new THREE.Vector3(1,0,0)},
+      ready:{value:0}
     },
     vertexShader: `
-      varying vec2 vUv; varying vec3 vLocalNormal;
-      void main(){ vUv=uv; vLocalNormal=normalize(normal); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-    fragmentShader: `
-      uniform sampler2D dayMap; uniform sampler2D nightMap;
-      uniform vec3 sunDirLocal; uniform float ready;
-      varying vec2 vUv; varying vec3 vLocalNormal;
+      varying vec3 vCubeUV; varying vec3 vLocalNormal;
       void main(){
-        vec3 day = texture2D(dayMap, vUv).rgb;
-        vec3 night = texture2D(nightMap, vUv).rgb * 0.9;
+        vLocalNormal = normalize(normal);
+        // direção da posição na esfera = vetor de amostragem do cubemap
+        vCubeUV = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+      }`,
+    fragmentShader: `
+      uniform samplerCube dayMap;
+      uniform samplerCube nightMap;
+      uniform vec3 sunDirLocal;
+      uniform float ready;
+      varying vec3 vCubeUV;
+      varying vec3 vLocalNormal;
+      void main(){
+        if(ready < 0.5){
+          // ainda não carregou — preto que será encoberto pelo loadingMsg / outras camadas
+          gl_FragColor = vec4(0.02, 0.04, 0.10, 1.0);
+          return;
+        }
+        vec3 day = textureCube(dayMap, vCubeUV).rgb;
+        vec3 night = textureCube(nightMap, vCubeUV).rgb * 0.9;
         float lambert = dot(vLocalNormal, normalize(sunDirLocal));
         float terminator = 0.14;
         float dayMix = smoothstep(-terminator, terminator, lambert);
@@ -877,51 +819,10 @@
   latPivot.add(earth);
   latPivot.rotation.x = USER_LAT * Math.PI/180;
 
-  // ===== CALOTAS POLARES (v23) =====
-  // Disfarçam o artefato de mapeamento equiretangular nos polos.
-  // SphereGeometry com thetaStart/thetaLength limitados = só o "topo" ou "fundo" da esfera.
-  // Raio levemente maior que o da Terra (1.001) para ficar por cima, sem z-fighting.
-  function makeIceCapMaterial(){
-    return new THREE.ShaderMaterial({
-      uniforms: { sunDirLocal: earthMat.uniforms.sunDirLocal },
-      vertexShader: `
-        varying vec3 vLocalNormal;
-        void main(){
-          vLocalNormal = normalize(normal);
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }`,
-      fragmentShader: `
-        uniform vec3 sunDirLocal;
-        varying vec3 vLocalNormal;
-        void main(){
-          // gelo branco-azulado, com iluminação seguindo o sol (igual à Terra)
-          vec3 iceCol = vec3(0.92, 0.94, 0.97);
-          float lambert = dot(vLocalNormal, normalize(sunDirLocal));
-          float terminator = 0.14;
-          float dayMix = smoothstep(-terminator, terminator, lambert);
-          vec3 ambient = iceCol * 0.10;
-          vec3 lit = iceCol * max(0.0, lambert) * 1.15 + ambient;
-          // lado noturno também aparece sutil (gelo reflete luar)
-          vec3 night = iceCol * 0.08;
-          vec3 col = mix(night, lit, dayMix);
-          gl_FragColor = vec4(col, 1.0);
-        }`
-    });
-  }
-
-  // calota NORTE — thetaStart=0 (topo), thetaLength=0.18π cobre ~16° abaixo do polo
-  const iceNorth = new THREE.Mesh(
-    new THREE.SphereGeometry(1.001, 64, 32, 0, Math.PI*2, 0, Math.PI*0.18),
-    makeIceCapMaterial()
-  );
-  latPivot.add(iceNorth);
-
-  // calota SUL — thetaStart próximo de π (fundo), até π
-  const iceSouth = new THREE.Mesh(
-    new THREE.SphereGeometry(1.001, 64, 32, 0, Math.PI*2, Math.PI*0.84, Math.PI*0.16),
-    makeIceCapMaterial()
-  );
-  latPivot.add(iceSouth);
+  // ===== CALOTAS POLARES REMOVIDAS no v25 =====
+  // No v23 elas disfarçavam o artefato do mapeamento equirectangular nos polos.
+  // Com o cubemap real do v25, esse artefato não existe — as calotas reais da Terra
+  // (Ártico e Antártica) aparecem corretamente nas próprias texturas, sem distorção.
 
   // halo atmosférico removido a pedido (v21)
 
@@ -992,23 +893,46 @@
     orbitGroup.rotation.y = baseSpin + extraSpin;
   }
 
-  // ---- TEXTURA HD EXTERNA: tenta carregar por cima da procedural ----
-  const loader = new THREE.TextureLoader();
-  // texturas embarcadas no próprio repositório do app (v22 — sem dependência externa)
-  const HD_DAY = './earth-day.jpg';
-  const HD_NIGHT = './earth-night.jpg';
-  let hdDay=null, hdNight=null;
-  function tryApplyHD(){
-    if(hdDay && hdNight){
-      earthMat.uniforms.dayMap.value = hdDay;
-      earthMat.uniforms.nightMap.value = hdNight;
+  // ===== CARREGAMENTO DAS TEXTURAS CUBEMAP (v25) =====
+  // 6 faces separadas por mapa (dia e noite) — padrão WebGL canônico.
+  // THREE.CubeTextureLoader espera ordem: [posX, negX, posY, negY, posZ, negZ]
+  const cubeLoader = new THREE.CubeTextureLoader();
+  let dayCubeLoaded = false, nightCubeLoaded = false;
+  function markReady(){
+    if(dayCubeLoaded && nightCubeLoaded){
+      earthMat.uniforms.ready.value = 1;
       earthMat.needsUpdate = true;
+      loadingMsg.style.display = 'none';
     }
   }
-  loader.load(HD_DAY, t=>{ hdDay=t; tryApplyHD(); }, undefined, ()=>{ /* mantém procedural */ });
-  loader.load(HD_NIGHT, t=>{ hdNight=t; tryApplyHD(); }, undefined, ()=>{ /* mantém procedural */ });
-  // a Terra procedural já está pronta — esconde o aviso de carregamento logo
-  setTimeout(()=>{ loadingMsg.style.display='none'; }, 350);
+  const dayCube = cubeLoader.load(
+    [
+      './earth_cubemap_day_fixed_posx.jpg',
+      './earth_cubemap_day_fixed_negx.jpg',
+      './earth_cubemap_day_fixed_posy.jpg',
+      './earth_cubemap_day_fixed_negy.jpg',
+      './earth_cubemap_day_fixed_posz.jpg',
+      './earth_cubemap_day_fixed_negz.jpg'
+    ],
+    ()=>{ dayCubeLoaded = true; earthMat.uniforms.dayMap.value = dayCube; markReady(); },
+    undefined,
+    (err)=>{ console.log('[cubemap dia] falha:', err); }
+  );
+  const nightCube = cubeLoader.load(
+    [
+      './earth_cubemap_night_fixed_posx.jpg',
+      './earth_cubemap_night_fixed_negx.jpg',
+      './earth_cubemap_night_fixed_posy.jpg',
+      './earth_cubemap_night_fixed_negy.jpg',
+      './earth_cubemap_night_fixed_posz.jpg',
+      './earth_cubemap_night_fixed_negz.jpg'
+    ],
+    ()=>{ nightCubeLoaded = true; earthMat.uniforms.nightMap.value = nightCube; markReady(); },
+    undefined,
+    (err)=>{ console.log('[cubemap noite] falha:', err); }
+  );
+  // se demorar mais de 6s, esconde o loadingMsg de qualquer forma
+  setTimeout(()=>{ loadingMsg.style.display='none'; }, 6000);
 
   function computeSunDirLocal(date){
     const utc = new Date(date.getTime());
