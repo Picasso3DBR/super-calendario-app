@@ -1,4 +1,4 @@
-<h2 class="sr-only">Super Calendário v27 — cubemap alinhado ao mundo (não ao mesh), inclinação aplicada à câmera, ponto verde no lugar correto.</h2>
+<h2 class="sr-only">Super Calendário v28 — cubemap nativo (CubeTextureLoader) com 6 faces, inversão de X no shader para alinhamento geográfico correto, transição dia/noite preservada.</h2>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -813,8 +813,12 @@
           gl_FragColor = vec4(0.02, 0.04, 0.10, 1.0);
           return;
         }
-        vec3 day = textureCube(dayMap, vCubeUV).rgb;
-        vec3 night = textureCube(nightMap, vCubeUV).rgb * 0.9;
+        // v28: WebGL/GLSL usa sistema left-handed para samplerCube.
+        // Para alinhar geograficamente a Terra (polo norte = +Y, frente = +Z),
+        // invertemos X na amostragem — mesma correção validada em Terra.html.
+        vec3 sampleDir = vec3(-vCubeUV.x, vCubeUV.y, vCubeUV.z);
+        vec3 day   = textureCube(dayMap, sampleDir).rgb;
+        vec3 night = textureCube(nightMap, sampleDir).rgb * 0.9;
         float lambert = dot(vLocalNormal, normalize(sunDirLocal));
         float terminator = 0.14;
         float dayMix = smoothstep(-terminator, terminator, lambert);
@@ -905,16 +909,15 @@
     orbitGroup.rotation.y = baseSpin + extraSpin;
   }
 
-  // ===== CARREGAMENTO DAS TEXTURAS CUBEMAP (v26) =====
-  // As 6 faces separadas no repositório (posx, negx, ...) tinham mapeamento incorreto,
-  // gerando "retalhos" no globo. A solução robusta é usar a CRUZ HORIZONTAL ÚNICA
-  // (earth_cubemap_day_fixed.jpg, 4096×3072) — layout canônico:
+  // ===== CARREGAMENTO DAS TEXTURAS CUBEMAP (v28) =====
+  // Solução validada em Terra.html: usa THREE.CubeTextureLoader nativo carregando
+  // as 6 faces já fatiadas do repositório, na ordem canônica WebGL [+X,-X,+Y,-Y,+Z,-Z].
+  // A inversão do eixo X é feita no fragment shader (sampleDir = vec3(-x, y, z)),
+  // garantindo o alinhamento geográfico correto (polo norte = +Y, frente = +Z).
   //
-  //          [    ][ +Y ][    ][    ]
-  //          [ -X ][ +Z ][ +X ][ -Z ]
-  //          [    ][ -Y ][    ][    ]
-  //
-  // Cada célula = 1024×1024. Fatiamos em JS e montamos o cubemap na ordem WebGL [+X,-X,+Y,-Y,+Z,-Z].
+  // Texturas no repositório: https://github.com/Picasso3DBR/super-calendario-app
+  // - earth_cubemap_day_fixed_{posx,negx,posy,negy,posz,negz}.jpg
+  // - earth_cubemap_night_fixed_{posx,negx,posy,negy,posz,negz}.jpg
 
   let dayCubeLoaded = false, nightCubeLoaded = false;
   function markReady(){
@@ -925,49 +928,52 @@
     }
   }
 
-  // Sliceia uma imagem de cruz 4×3 em 6 canvas 1024×1024 na ordem WebGL canônica
-  // Retorna um THREE.CubeTexture pronto para usar.
-  function sliceCrossIntoCubeTexture(crossImage){
-    const W = crossImage.naturalWidth, H = crossImage.naturalHeight;
-    const cellW = W/4, cellH = H/3;
-    // posições na grade (col, row) das 6 faces na ordem WebGL [+X,-X,+Y,-Y,+Z,-Z]
-    const layout = [
-      { face:'+X', col:2, row:1 },
-      { face:'-X', col:0, row:1 },
-      { face:'+Y', col:1, row:0 },
-      { face:'-Y', col:1, row:2 },
-      { face:'+Z', col:1, row:1 },
-      { face:'-Z', col:3, row:1 }
-    ];
-    const faceCanvases = layout.map(p => {
-      const c = document.createElement('canvas');
-      c.width = cellW; c.height = cellH;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(crossImage, p.col*cellW, p.row*cellH, cellW, cellH, 0, 0, cellW, cellH);
-      return c;
-    });
-    const cubeTex = new THREE.CubeTexture(faceCanvases);
-    cubeTex.needsUpdate = true;
-    return cubeTex;
-  }
+  // ordem WebGL: +X, -X, +Y, -Y, +Z, -Z
+  const DAY_FACE_URLS = [
+    './earth_cubemap_day_fixed_posx.jpg',
+    './earth_cubemap_day_fixed_negx.jpg',
+    './earth_cubemap_day_fixed_posy.jpg',
+    './earth_cubemap_day_fixed_negy.jpg',
+    './earth_cubemap_day_fixed_posz.jpg',
+    './earth_cubemap_day_fixed_negz.jpg'
+  ];
+  const NIGHT_FACE_URLS = [
+    './earth_cubemap_night_fixed_posx.jpg',
+    './earth_cubemap_night_fixed_negx.jpg',
+    './earth_cubemap_night_fixed_posy.jpg',
+    './earth_cubemap_night_fixed_negy.jpg',
+    './earth_cubemap_night_fixed_posz.jpg',
+    './earth_cubemap_night_fixed_negz.jpg'
+  ];
 
-  function loadCrossAndBuildCube(url){
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(sliceCrossIntoCubeTexture(img));
-      img.onerror = (err) => reject(err);
-      img.src = url;
-    });
-  }
+  const cubeLoader = new THREE.CubeTextureLoader();
+  cubeLoader.setCrossOrigin('anonymous');
 
-  loadCrossAndBuildCube('./earth_cubemap_day_fixed.jpg')
-    .then(tex => { earthMat.uniforms.dayMap.value = tex; dayCubeLoaded = true; markReady(); })
-    .catch(err => console.log('[cubemap dia] falha ao montar:', err));
+  cubeLoader.load(
+    DAY_FACE_URLS,
+    (cubeTexture) => {
+      cubeTexture.colorSpace = THREE.SRGBColorSpace;
+      cubeTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      earthMat.uniforms.dayMap.value = cubeTexture;
+      dayCubeLoaded = true;
+      markReady();
+    },
+    undefined,
+    (err) => console.log('[cubemap dia] falha ao carregar:', err)
+  );
 
-  loadCrossAndBuildCube('./earth_cubemap_night_fixed.jpg')
-    .then(tex => { earthMat.uniforms.nightMap.value = tex; nightCubeLoaded = true; markReady(); })
-    .catch(err => console.log('[cubemap noite] falha ao montar:', err));
+  cubeLoader.load(
+    NIGHT_FACE_URLS,
+    (cubeTexture) => {
+      cubeTexture.colorSpace = THREE.SRGBColorSpace;
+      cubeTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      earthMat.uniforms.nightMap.value = cubeTexture;
+      nightCubeLoaded = true;
+      markReady();
+    },
+    undefined,
+    (err) => console.log('[cubemap noite] falha ao carregar:', err)
+  );
 
   // se demorar mais de 8s, esconde o loadingMsg de qualquer forma
   setTimeout(()=>{ loadingMsg.style.display='none'; }, 8000);
